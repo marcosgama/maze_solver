@@ -1,4 +1,5 @@
 from tkinter import Tk, BOTH, Canvas
+from time import sleep
 
 class Point:
     def __init__(self, x: float, y: float):
@@ -113,22 +114,58 @@ class Cell:
         color = "gray" if undo else "red"
         line.draw(self.window.canvas, fill_color=color)
 
+class Maze:
+    def __init__(
+        self,
+        x1: int,
+        y1: int,
+        num_rows: int,
+        num_cols: int,
+        cell_size_x: int,
+        cell_size_y: int,
+        window: Window,
+    ):
+
+       self.x1 = x1
+       self.y1 = y1
+       self.num_rows = num_rows
+       self.num_cols = num_cols
+       self.cell_size_x = cell_size_x
+       self.cell_size_y = cell_size_y
+       self.window = window
+       self._cells: list[list[Cell]] = []
+       self._create_cells()
+
+    def _create_cells(self) -> None:
+        for i in range(self.num_cols):
+            self._cells.append([])
+            for j in range(self.num_rows):
+                x = self.x1 + (i * self.cell_size_x)
+                y = self.y1 + (j * self.cell_size_y)
+                cell = Cell(x, y, x + self.cell_size_x, y + self.cell_size_y, self.window)
+                self._cells[i].append(cell)
+                self._draw_cell(i, j)
+
+    def _draw_cell(self, i: int, j: int) -> None:
+       self._cells[i][j].draw()
+       self._animate()
+
+    def _animate(self) -> None:
+        self.window.redraw()
+        sleep(0.05)
 
 
 def main():
     window = Window(800, 600)
-    cell1 = Cell(10, 10, 50, 50, window)
-    cell2 = Cell(50, 10, 90, 50, window)
-    cell3 = Cell(10, 50, 50, 90, window)
-    cell3 = Cell(10, 50, 50, 90, window)
-    cell4 = Cell(50, 50, 90, 90, window)
-    cells = [cell1, cell2, cell3, cell4]
-    for cell in cells:
-       cell.draw()
-
-    cell1.draw_move(cell2, undo=True)
-    cell1.draw_move(cell3, undo=True)
-    cell1.draw_move(cell4, undo=True)
+    maze = Maze(
+        x1=10,           # start 10 pixels from left
+        y1=10,           # start 10 pixels from top
+        num_rows=10,     # 10 rows
+        num_cols=8,      # 8 columns
+        cell_size_x=50,  # each cell is 50 pixels wide
+        cell_size_y=50,  # each cell is 50 pixels tall
+        window=window    # the window to draw in
+    )
     window.wait_for_close()
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 from tkinter import Tk, BOTH, Canvas
 
 class Point:
-    def __init__(self, x: int, y: int):
+    def __init__(self, x: float, y: float):
         self.x = x
         self.y = y
 
@@ -67,6 +67,7 @@ class Cell:
         self.wall_color = wall_color
         self._coordinates = {"x1": x1, "x2": x2, "y1": y1, "y2": y2}
         self._set_coordinates()
+        self.center = self._compute_center()
 
     def _set_coordinates(self) -> None:
         for k, v in self._coordinates.items():
@@ -101,19 +102,34 @@ class Cell:
         if self.has_bottom_wall:
             self.window.draw_line(self._build_wall("bottom"), fill_color=self.wall_color)
 
+    def _compute_center(self) -> Point:
+        return Point((self.x1 + self.x2) / 2, (self.y1 + self.y2) / 2)
+
+    def draw_move(self, to_cell: "Cell", undo=False) -> None:
+        """
+        Draws a line from the center of a cell to another cell.
+        """
+        line = Line(self.center, to_cell.center)
+        color = "gray" if undo else "red"
+        line.draw(self.window.canvas, fill_color=color)
 
 
 
 def main():
-   window = Window(800, 600)
-   cell1 = Cell(10, 10, 50, 50, window)
-   cell2 = Cell(50, 10, 90, 50, window)
-   cell3 = Cell(10, 50, 50, 90, window)
-   cell3 = Cell(10, 50, 50, 90, window)
-   cell4 = Cell(50, 50, 90, 90, window)
-   cells = [cell1, cell2, cell3, cell4]
-   for cell in cells:
+    window = Window(800, 600)
+    cell1 = Cell(10, 10, 50, 50, window)
+    cell2 = Cell(50, 10, 90, 50, window)
+    cell3 = Cell(10, 50, 50, 90, window)
+    cell3 = Cell(10, 50, 50, 90, window)
+    cell4 = Cell(50, 50, 90, 90, window)
+    cells = [cell1, cell2, cell3, cell4]
+    for cell in cells:
        cell.draw()
-   window.wait_for_close()
+
+    cell1.draw_move(cell2, undo=True)
+    cell1.draw_move(cell3, undo=True)
+    cell1.draw_move(cell4, undo=True)
+    window.wait_for_close()
+
 if __name__ == "__main__":
     main()

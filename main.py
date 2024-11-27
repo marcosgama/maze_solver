@@ -50,15 +50,70 @@ class Window:
         except Exception as e:
             print(e)
 
+class Cell:
+    def __init__(self,
+        x1: int,
+        y1: int,
+        x2: int,
+        y2: int,
+        window: Window,
+        wall_color: str = "red"
+    ):
+        self.has_left_wall = True
+        self.has_right_wall = True
+        self.has_top_wall = True
+        self.has_bottom_wall = True
+        self.window = window
+        self.wall_color = wall_color
+        self._coordinates = {"x1": x1, "x2": x2, "y1": y1, "y2": y2}
+        self._set_coordinates()
+
+    def _set_coordinates(self) -> None:
+        for k, v in self._coordinates.items():
+            if v < 0:
+                raise ValueError(f"Coordinate {k} must be > 0")
+
+        self.x1 = min(self._coordinates["x1"], self._coordinates["x2"])
+        self.x2 = max(self._coordinates["x1"], self._coordinates["x2"])
+        self.y1 = min(self._coordinates["y1"], self._coordinates["y2"])
+        self.y2 = max(self._coordinates["y1"], self._coordinates["y2"])
+
+    def _build_wall(self, kind: str) -> Line:
+        if kind not in ("left", "right", "top", "bottom"):
+            raise ValueError(f"{kind} if not a valid value")
+
+        if kind == "left":
+            return Line(Point(self.x1, self.y1), Point(self.x1, self.y2))
+        elif kind == "right":
+            return Line(Point(self.x2, self.y1), Point(self.x2, self.y2))
+        elif kind == "top":
+            return Line(Point(self.x1, self.y1), Point(self.x2, self.y1))
+        elif kind == "bottom":
+            return Line(Point(self.x1, self.y2), Point(self.x2, self.y2))
+
+    def draw(self) -> None:
+        if self.has_left_wall:
+            self.window.draw_line(self._build_wall("left"), fill_color=self.wall_color)
+        if self.has_right_wall:
+            self.window.draw_line(self._build_wall("right"), fill_color=self.wall_color)
+        if self.has_top_wall:
+            self.window.draw_line(self._build_wall("top"), fill_color=self.wall_color)
+        if self.has_bottom_wall:
+            self.window.draw_line(self._build_wall("bottom"), fill_color=self.wall_color)
+
 
 
 
 def main():
-   w = Window(800, 600)
-   p1 = Point(300, 500)
-   p2 = Point(100, 300)
-   line = Line(p1, p2)
-   w.draw_line(line, "red")
-   w.wait_for_close()
+   window = Window(800, 600)
+   cell1 = Cell(10, 10, 50, 50, window)
+   cell2 = Cell(50, 10, 90, 50, window)
+   cell3 = Cell(10, 50, 50, 90, window)
+   cell3 = Cell(10, 50, 50, 90, window)
+   cell4 = Cell(50, 50, 90, 90, window)
+   cells = [cell1, cell2, cell3, cell4]
+   for cell in cells:
+       cell.draw()
+   window.wait_for_close()
 if __name__ == "__main__":
     main()

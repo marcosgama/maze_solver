@@ -1,5 +1,8 @@
+import random
+
 from tkinter import Tk, BOTH, Canvas
 from time import sleep
+from posix import wait
 
 class Point:
     def __init__(self, x: float, y: float):
@@ -70,6 +73,7 @@ class Cell:
         self.wall_color = wall_color
         self._no_wall_color = "green"
         self._coordinates = {"x1": x1, "x2": x2, "y1": y1, "y2": y2}
+        self._visited = False
         self._set_coordinates()
         self.center = self._compute_center()
 
@@ -133,6 +137,7 @@ class Maze:
         cell_size_x: int,
         cell_size_y: int,
         window: Window | None = None,
+        seed: int | None = None
     ):
 
        self.x1 = x1
@@ -143,6 +148,7 @@ class Maze:
        self.cell_size_y = cell_size_y
        self.window = window
        self._cells: list[list[Cell]] = []
+       self._seed = random.seed(seed) if seed is not None else None
        self._create_cells()
        self._break_entrance_and_exit()
 
@@ -174,6 +180,60 @@ class Maze:
         finish.walls["bottom"] = False
         self._draw_cell(-1, -1)
 
+    def _break_walls(self, i: int, j: int) -> None:
+        cell = self._cells[i][j]
+        cell._visited = True
+
+        while True:
+            unvisited = self._check_neighbors(i, j)
+            if len(unvisited) == 0:
+                self._draw_cell(i, j)
+                return
+            ni, nj = random.choice(unvisited)
+            neighbor = self._cells[ni][nj]
+            if ni < i:
+                cell.walls["left"] = False
+                self._draw_cell(i, j)
+                neighbor.walls["right"] = False
+                self._draw_cell(ni, nj)
+                self._break_walls(ni, nj)
+            elif ni > i:
+                cell.walls["right"] = False
+                self._draw_cell(i, j)
+                neighbor.walls["left"] = False
+                self._draw_cell(ni, nj)
+                self._break_walls(ni, nj)
+            elif nj < j:
+                cell.walls["top"] = False
+                self._draw_cell(i, j)
+                neighbor.walls["bottom"] = False
+                self._draw_cell(ni, nj)
+                self._break_walls(ni, nj)
+            elif nj > j:
+                cell.walls["bottom"] = False
+                self._draw_cell(i, j)
+                neighbor.walls["top"] = False
+                self._draw_cell(ni, nj)
+                self._break_walls(ni, nj)
+
+
+    def _check_neighbors(self, i: int, j: int) -> list[tuple[int, int]]:
+        neighbors = []
+
+        if i > 0:
+            if not self._cells[i - 1][j]._visited:
+                neighbors.append((i - 1, j))
+        if i < len(self._cells) - 1:
+            if not self._cells[i + 1][j]._visited:
+                neighbors.append((i + 1, j))
+        if j > 0:
+           if not self._cells[i][j - 1]._visited:
+              neighbors.append((i, j - 1))
+        if j < len(self._cells[0]) - 1:
+           if not self._cells[i][j + 1]._visited:
+               neighbors.append((i, j + 1))
+
+        return neighbors
 
 def main():
     window = Window(800, 600)

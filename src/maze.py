@@ -1,7 +1,7 @@
 import random
 
 from time import sleep
-from graphics import Window, Point, Line
+from src.graphics import Window, Point, Line
 
 class Cell:
 

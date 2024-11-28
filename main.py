@@ -1,8 +1,8 @@
-from graphics import Window
-from maze import Maze
+from src.graphics import Window
+from src.maze import Maze
 
 def main():
-    window = Window(800, 600, bg="#2e2b2a")
+    window = Window(1200, 600, bg="#2e2b2a")
     cell_size = 50
     num_cols = 8
     num_rows = 10

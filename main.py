@@ -57,7 +57,7 @@ class Cell:
         y1: int,
         x2: int,
         y2: int,
-        window: Window,
+        window: Window | None = None,
         wall_color: str = "red"
     ):
         self.has_left_wall = True
@@ -123,7 +123,7 @@ class Maze:
         num_cols: int,
         cell_size_x: int,
         cell_size_y: int,
-        window: Window,
+        window: Window | None = None,
     ):
 
        self.x1 = x1
@@ -144,15 +144,17 @@ class Maze:
                 y = self.y1 + (j * self.cell_size_y)
                 cell = Cell(x, y, x + self.cell_size_x, y + self.cell_size_y, self.window)
                 self._cells[i].append(cell)
-                self._draw_cell(i, j)
+                if self.window:
+                    self._draw_cell(i, j)
 
     def _draw_cell(self, i: int, j: int) -> None:
        self._cells[i][j].draw()
        self._animate()
 
     def _animate(self) -> None:
-        self.window.redraw()
-        sleep(0.05)
+        if self.window:
+            self.window.redraw()
+            sleep(0.05)
 
 
 def main():

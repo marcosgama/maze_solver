@@ -25,15 +25,17 @@ class Line:
         )
 
 class Window:
-    def __init__(self, width: float, height: float):
+    def __init__(self, width: float, height: float, bg: str = "white"):
         self.width = width
         self.height = height
         self.running = False
+        self.bg = bg
 
         self.root_widget = Tk()
         self.root_widget.title = "Window"
+        self.root_widget.configure(bg=bg)
         self.root_widget.protocol("WM_DELETE_WINDOW", self.close)
-        self.canvas = Canvas(width=width, height=height)
+        self.canvas = Canvas(width=width, height=height, bg=bg)
         self.canvas.pack()
 
     def redraw(self) -> None:
@@ -71,11 +73,15 @@ class Cell:
         }
         self.window = window
         self.wall_color = wall_color
-        self._no_wall_color = "green"
+        self._no_wall_color = window.bg if window else "gray"
         self._coordinates = {"x1": x1, "x2": x2, "y1": y1, "y2": y2}
         self._visited = False
         self._set_coordinates()
         self.center = self._compute_center()
+
+    def __eq__(self, other: "Cell") -> bool:
+        return self._coordinates == other._coordinates
+
 
     def _set_coordinates(self) -> None:
         for k, v in self._coordinates.items():
@@ -117,14 +123,18 @@ class Cell:
 
 
     def _compute_center(self) -> Point:
-        return Point((self.x1 + self.x2) / 2, (self.y1 + self.y2) / 2)
+        half_length = abs(self.x2 - self.x1) // 2
+        x_center = half_length + self.x1
+        y_center = half_length + self.y1
+
+        return Point(x_center, y_center)
 
     def draw_move(self, to_cell: "Cell", undo=False) -> None:
         """
         Draws a line from the center of a cell to another cell.
         """
         line = Line(self.center, to_cell.center)
-        color = "gray" if undo else "red"
+        color = self._no_wall_color if undo else "white"
         line.draw(self.window.canvas, fill_color=color)
 
 class Maze:
@@ -151,6 +161,7 @@ class Maze:
        self._seed = random.seed(seed) if seed is not None else None
        self._create_cells()
        self._break_entrance_and_exit()
+       self._break_walls(0, 0)
 
     def _create_cells(self) -> None:
         for i in range(self.num_cols):
@@ -186,66 +197,141 @@ class Maze:
 
         while True:
             unvisited = self._check_neighbors(i, j)
-            if len(unvisited) == 0:
+            if not unvisited:
                 self._draw_cell(i, j)
                 return
+
             ni, nj = random.choice(unvisited)
             neighbor = self._cells[ni][nj]
-            if ni < i:
-                cell.walls["left"] = False
-                self._draw_cell(i, j)
-                neighbor.walls["right"] = False
-                self._draw_cell(ni, nj)
-                self._break_walls(ni, nj)
-            elif ni > i:
-                cell.walls["right"] = False
-                self._draw_cell(i, j)
-                neighbor.walls["left"] = False
-                self._draw_cell(ni, nj)
-                self._break_walls(ni, nj)
-            elif nj < j:
+
+            if nj < j:  # Moving up
                 cell.walls["top"] = False
-                self._draw_cell(i, j)
                 neighbor.walls["bottom"] = False
-                self._draw_cell(ni, nj)
-                self._break_walls(ni, nj)
-            elif nj > j:
+            elif nj > j:  # Moving down
                 cell.walls["bottom"] = False
-                self._draw_cell(i, j)
                 neighbor.walls["top"] = False
-                self._draw_cell(ni, nj)
-                self._break_walls(ni, nj)
+            elif ni < i:  # Moving left
+                cell.walls["left"] = False
+                neighbor.walls["right"] = False
+            elif ni > i:  # Moving right
+                cell.walls["right"] = False
+                neighbor.walls["left"] = False
+
+            # Redraw updated cells and recurse
+            self._break_walls(ni, nj)
 
 
     def _check_neighbors(self, i: int, j: int) -> list[tuple[int, int]]:
         neighbors = []
 
-        if i > 0:
-            if not self._cells[i - 1][j]._visited:
-                neighbors.append((i - 1, j))
-        if i < len(self._cells) - 1:
-            if not self._cells[i + 1][j]._visited:
-                neighbors.append((i + 1, j))
-        if j > 0:
-           if not self._cells[i][j - 1]._visited:
-              neighbors.append((i, j - 1))
-        if j < len(self._cells[0]) - 1:
-           if not self._cells[i][j + 1]._visited:
-               neighbors.append((i, j + 1))
+        if i > 0 and not self._cells[i - 1][j]._visited:
+            neighbors.append((i - 1, j))
+        if i < self.num_cols - 1 and not self._cells[i + 1][j]._visited:
+            neighbors.append((i + 1, j))
+        if j > 0 and not self._cells[i][j - 1]._visited:
+            neighbors.append((i, j - 1))
+        if j < self.num_rows - 1 and not self._cells[i][j + 1]._visited:
+            neighbors.append((i, j + 1))
 
         return neighbors
 
+    def _reset_cells_visited(self) -> None:
+        for col in self._cells:
+            for cell in col:
+                cell._visited = False
+
+    def solve(self) -> bool:
+        self._reset_cells_visited()
+        return self._solve_maze(0, 0)
+
+    def _solve_maze(self, i: int, j: int) -> bool:
+        self._animate()
+
+        # vist the current cell
+        self._cells[i][j]._visited = True
+
+        print(f"recursing for i={i} and j={j}")
+
+        # if we are at the end cell, we are done!
+        if i == self.num_cols - 1 and j == self.num_rows - 1:
+            print("Done!")
+            return True
+
+        # move left if there is no wall and it hasn't been visited
+        if (
+            i > 0
+            and not self._cells[i][j].walls["left"]
+            and not self._cells[i - 1][j]._visited
+        ):
+            print("checking left direction")
+            self._cells[i][j].draw_move(self._cells[i - 1][j])
+            if self._solve_maze(i - 1, j):
+                return True
+            else:
+                self._cells[i][j].draw_move(self._cells[i - 1][j], True)
+
+        # move right if there is no wall and it hasn't been visited
+        if (
+            i < self.num_cols - 1
+            and not self._cells[i][j].walls["right"]
+            and not self._cells[i + 1][j]._visited
+        ):
+            print("checking right direction")
+            self._cells[i][j].draw_move(self._cells[i + 1][j])
+            if self._solve_maze(i + 1, j):
+                return True
+            else:
+                self._cells[i][j].draw_move(self._cells[i + 1][j], True)
+
+        # move up if there is no wall and it hasn't been visited
+        if (
+            j > 0
+            and not self._cells[i][j].walls["top"]
+            and not self._cells[i][j - 1]._visited
+        ):
+            print("checking top direction")
+            self._cells[i][j].draw_move(self._cells[i][j - 1])
+            if self._solve_maze(i, j - 1):
+                return True
+            else:
+                self._cells[i][j].draw_move(self._cells[i][j - 1], True)
+
+        # move down if there is no wall and it hasn't been visited
+        if (
+            j < self.num_rows - 1
+            and not self._cells[i][j].walls["bottom"]
+            and not self._cells[i][j + 1]._visited
+        ):
+            print("checking bottobottom direction")
+            self._cells[i][j].draw_move(self._cells[i][j + 1])
+            if self._solve_maze(i, j + 1):
+                return True
+            else:
+                self._cells[i][j].draw_move(self._cells[i][j + 1], True)
+
+        # we went the wrong way let the previous cell know by returning False
+        return False
+
+
 def main():
-    window = Window(800, 600)
+    window = Window(800, 600, bg="#2e2b2a")
+    cell_size = 50
+    num_cols = 8
+    num_rows = 10
+    maze_width = num_cols * cell_size
+    maze_height = num_rows * cell_size
+    starting_x = (window.width - maze_width) // 2
+    starting_y = (window.height - maze_height) // 2
     maze = Maze(
-        x1=10,           # start 10 pixels from left
-        y1=10,           # start 10 pixels from top
-        num_rows=10,     # 10 rows
-        num_cols=8,      # 8 columns
-        cell_size_x=50,  # each cell is 50 pixels wide
-        cell_size_y=50,  # each cell is 50 pixels tall
+        x1=starting_x,           # start 10 pixels from left
+        y1=starting_y,     # start 10 pixels from top
+        num_rows=num_rows,     # 10 rows
+        num_cols=num_cols,      # 8 columns
+        cell_size_x=cell_size,  # each cell is 50 pixels wide
+        cell_size_y=cell_size,  # each cell is 50 pixels tall
         window=window    # the window to draw in
     )
+    maze.solve()
     window.wait_for_close()
 
 if __name__ == "__main__":

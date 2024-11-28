@@ -43,12 +43,25 @@ class Tests(unittest.TestCase):
         )
 
     def test_check_neighbors_visited(self):
-        # Test when neighbors are visited
-        self.m1._cells[0][1]._visited = True  # Mark right neighbor as visited
+        self.m1._cells[0][1]._visited = True
         expected = [(1, 0)]  # Should only return unvisited neighbor
         self.assertEqual(
             sorted(self.m1._check_neighbors(0, 0)),
             sorted(expected)
         )
+
+    def test_reset_cell_visited(self):
+        for col in self.m1._cells:
+            for cell in col:
+                cell._visited = True
+
+        self.m1._reset_cells_visited()
+        visited = 0
+        for col in self.m1._cells:
+            for cell in col:
+                if cell._visited:
+                    visited += 1
+        self.assertEqual(visited, 0)
+
 if __name__ == "__main__":
     unittest.main()

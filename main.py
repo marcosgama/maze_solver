@@ -144,6 +144,7 @@ class Maze:
        self.window = window
        self._cells: list[list[Cell]] = []
        self._create_cells()
+       self._break_entrance_and_exit()
 
     def _create_cells(self) -> None:
         for i in range(self.num_cols):
@@ -156,14 +157,22 @@ class Maze:
                 if self.window:
                     self._draw_cell(i, j)
 
-    def _draw_cell(self, i: int, j: int) -> None:
-       self._cells[i][j].draw()
+    def _draw_cell(self, i: int, j: int, color: str | None = None) -> None:
+       self._cells[i][j].draw(color=color)
        self._animate()
 
     def _animate(self) -> None:
         if self.window:
             self.window.redraw()
             sleep(0.05)
+
+    def _break_entrance_and_exit(self) -> None:
+        start: Cell = self._cells[0][0]
+        finish: Cell = self._cells[-1][-1]
+        start.walls["top"] = False
+        self._draw_cell(0, 0)
+        finish.walls["bottom"] = False
+        self._draw_cell(-1, -1)
 
 
 def main():

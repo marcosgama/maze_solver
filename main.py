@@ -60,12 +60,15 @@ class Cell:
         window: Window | None = None,
         wall_color: str = "red"
     ):
-        self.has_left_wall = True
-        self.has_right_wall = True
-        self.has_top_wall = True
-        self.has_bottom_wall = True
+        self.walls = {
+            "left": True,
+            "right": True,
+            "top": True,
+            "bottom": True
+        }
         self.window = window
         self.wall_color = wall_color
+        self._no_wall_color = "green"
         self._coordinates = {"x1": x1, "x2": x2, "y1": y1, "y2": y2}
         self._set_coordinates()
         self.center = self._compute_center()
@@ -93,15 +96,21 @@ class Cell:
         elif kind == "bottom":
             return Line(Point(self.x1, self.y2), Point(self.x2, self.y2))
 
-    def draw(self) -> None:
-        if self.has_left_wall:
-            self.window.draw_line(self._build_wall("left"), fill_color=self.wall_color)
-        if self.has_right_wall:
-            self.window.draw_line(self._build_wall("right"), fill_color=self.wall_color)
-        if self.has_top_wall:
-            self.window.draw_line(self._build_wall("top"), fill_color=self.wall_color)
-        if self.has_bottom_wall:
-            self.window.draw_line(self._build_wall("bottom"), fill_color=self.wall_color)
+
+
+    def draw(
+        self,
+        color: str | None = None
+    ) -> None:
+        if self.window:
+            color = color if color else self.wall_color
+            for wall in self.walls.keys():
+                if self.walls[wall]:
+                    self.window.draw_line(self._build_wall(wall), fill_color=color)
+                else:
+                    self.window.draw_line(self._build_wall(wall), fill_color=self._no_wall_color)
+
+
 
     def _compute_center(self) -> Point:
         return Point((self.x1 + self.x2) / 2, (self.y1 + self.y2) / 2)
